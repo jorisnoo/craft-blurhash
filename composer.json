@@ -1,0 +1,43 @@
+{
+    "name": "jorisnoo/craft-blurhash",
+    "description": "Blurhash encoding and transparency detection for Craft CMS assets, backed by a database table.",
+    "type": "craft-plugin",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Joris Noordermeer",
+            "email": "contact@noordermeer.ch"
+        }
+    ],
+    "require": {
+        "php": "^8.2",
+        "craftcms/cms": "^5.0.0",
+        "kornrunner/blurhash": "^1.2"
+    },
+    "require-dev": {
+        "pestphp/pest": "^4.4"
+    },
+    "autoload": {
+        "psr-4": {
+            "Noo\\CraftBlurhash\\": "src/"
+        }
+    },
+    "extra": {
+        "handle": "craft-blurhash",
+        "name": "Blurhash",
+        "developer": "Joris Noordermeer",
+        "documentationUrl": "https://github.com/jorisnoo/craft-blurhash",
+        "class": "Noo\\CraftBlurhash\\Plugin"
+    },
+    "config": {
+        "sort-packages": true,
+        "platform": {
+            "php": "8.2"
+        },
+        "allow-plugins": {
+            "yiisoft/yii2-composer": true,
+            "craftcms/plugin-installer": true,
+            "pestphp/pest-plugin": true
+        }
+    }
+}
