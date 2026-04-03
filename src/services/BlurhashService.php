@@ -39,8 +39,12 @@ class BlurhashService extends Component
         return (bool) (BlurhashRecord::findOne(['assetId' => $asset->id])?->hasTransparency ?? false);
     }
 
-    public function blurhashToUri(string $blurhash): string
+    public function blurhashToUri(?string $blurhash): ?string
     {
+        if ($blurhash === null) {
+            return null;
+        }
+
         $pixels = Blurhash::decode($blurhash, self::DECODE_SIZE, self::DECODE_SIZE);
 
         $image = imagecreatetruecolor(self::DECODE_SIZE, self::DECODE_SIZE);
@@ -59,8 +63,12 @@ class BlurhashService extends Component
         return sprintf('data:image/png;base64,%s', base64_encode($data));
     }
 
-    public function averageColor(string $blurhash): string
+    public function averageColor(?string $blurhash): ?string
     {
+        if ($blurhash === null) {
+            return null;
+        }
+
         $value = Base83::decode(substr($blurhash, 2, 4));
 
         return ColorValidator::normalizeColor('#' . dechex($value));

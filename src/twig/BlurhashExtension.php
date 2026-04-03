@@ -36,12 +36,12 @@ class BlurhashExtension extends AbstractExtension
         return Plugin::getInstance()->blurhash->getHasTransparency($asset);
     }
 
-    public function blurhashToUri(string $blurhash): string
+    public function blurhashToUri(?string $blurhash): ?string
     {
         return Plugin::getInstance()->blurhash->blurhashToUri($blurhash);
     }
 
-    public function averageColor(string $blurhash): string
+    public function averageColor(?string $blurhash): ?string
     {
         return Plugin::getInstance()->blurhash->averageColor($blurhash);
     }
