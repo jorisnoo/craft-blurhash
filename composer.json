@@ -3,6 +3,11 @@
     "description": "Blurhash encoding and transparency detection for Craft CMS assets, backed by a database table.",
     "type": "craft-plugin",
     "license": "MIT",
+    "homepage": "https://github.com/jorisnoo/craft-blurhash",
+    "support": {
+        "source": "https://github.com/jorisnoo/craft-blurhash",
+        "issues": "https://github.com/jorisnoo/craft-blurhash/issues"
+    },
     "authors": [
         {
             "name": "Joris Noordermeer",
