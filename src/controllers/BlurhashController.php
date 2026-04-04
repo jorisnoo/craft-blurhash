@@ -20,14 +20,15 @@ class BlurhashController extends Controller
         $this->requirePostRequest();
         $this->requirePermission('utility:blurhash');
 
-        $existingIds = (new Query())
+        $generatedIds = (new Query())
             ->select('assetId')
             ->from('{{%blurhash}}')
+            ->where(['not', ['blurhash' => null]])
             ->column();
 
         $query = Asset::find()
             ->kind('image')
-            ->id($existingIds ? ['not', ...$existingIds] : null);
+            ->id($generatedIds ? ['not', ...$generatedIds] : null);
 
         $count = $this->pushBatchJobs($query);
 

@@ -28,9 +28,10 @@ class BlurhashUtility extends Utility
     {
         $plugin = Plugin::getInstance();
 
-        $existingIds = (new Query())
+        $generatedIds = (new Query())
             ->select('assetId')
             ->from('{{%blurhash}}')
+            ->where(['not', ['blurhash' => null]])
             ->column();
 
         $allImages = Asset::find()
@@ -46,7 +47,7 @@ class BlurhashUtility extends Utility
         $missingAssets = [];
 
         foreach ($eligibleAssets as $asset) {
-            if (in_array($asset->id, $existingIds)) {
+            if (in_array($asset->id, $generatedIds)) {
                 $generated++;
             } else {
                 $missingAssets[] = $asset;
