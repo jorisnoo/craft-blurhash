@@ -18,40 +18,62 @@ class BlurhashService extends Component
 
     private const DECODE_SIZE = 64;
 
-    public function computeAndStore(Asset $asset): void
-    {
-        $blurhash = $this->encode($asset);
-        $hasTransparency = $this->detectTransparency($asset);
+    /** @var array<int, BlurhashRecord|false> */
+    private array $recordCache = [];
 
-        $record = BlurhashRecord::findOne(['assetId' => $asset->id]) ?? new BlurhashRecord();
+    /** @var array<string, string> */
+    private array $uriCache = [];
+
+    public function computeAndStore(Asset $asset): BlurhashRecord
+    {
+        $record = $this->getRecord($asset) ?? new BlurhashRecord();
         $record->assetId = $asset->id;
-        $record->blurhash = $blurhash;
-        $record->hasTransparency = $hasTransparency;
+        $record->blurhash = $this->encode($asset);
+        $record->hasTransparency = $this->detectTransparency($asset);
         $record->save();
+
+        return $this->recordCache[$asset->id] = $record;
     }
 
     public function getBlurhash(Asset $asset): ?string
     {
-        $record = $this->getRecord($asset);
-
-        if (! $record && $this->shouldComputeOnDemand($asset)) {
-            $this->computeAndStore($asset);
-            $record = $this->getRecord($asset);
-        }
-
-        return $record?->blurhash;
+        return $this->resolve($asset)?->blurhash;
     }
 
     public function getHasTransparency(Asset $asset): bool
     {
+        return (bool) ($this->resolve($asset)?->hasTransparency ?? false);
+    }
+
+    public function blurhashToUri(?string $blurhash): ?string
+    {
+        if ($blurhash === null) {
+            return null;
+        }
+
+        return $this->uriCache[$blurhash] ??= $this->decodeToPngDataUri($blurhash);
+    }
+
+    public function averageColor(?string $blurhash): ?string
+    {
+        if ($blurhash === null) {
+            return null;
+        }
+
+        $value = Base83::decode(substr($blurhash, 2, 4));
+
+        return ColorValidator::normalizeColor('#'.dechex($value));
+    }
+
+    private function resolve(Asset $asset): ?BlurhashRecord
+    {
         $record = $this->getRecord($asset);
 
         if (! $record && $this->shouldComputeOnDemand($asset)) {
-            $this->computeAndStore($asset);
-            $record = $this->getRecord($asset);
+            $record = $this->computeAndStore($asset);
         }
 
-        return (bool) ($record?->hasTransparency ?? false);
+        return $record;
     }
 
     private function shouldComputeOnDemand(Asset $asset): bool
@@ -62,15 +84,15 @@ class BlurhashService extends Component
 
     private function getRecord(Asset $asset): ?BlurhashRecord
     {
-        return BlurhashRecord::findOne(['assetId' => $asset->id]);
-    }
-
-    public function blurhashToUri(?string $blurhash): ?string
-    {
-        if ($blurhash === null) {
-            return null;
+        if (! array_key_exists($asset->id, $this->recordCache)) {
+            $this->recordCache[$asset->id] = BlurhashRecord::findOne(['assetId' => $asset->id]) ?: false;
         }
 
+        return $this->recordCache[$asset->id] ?: null;
+    }
+
+    private function decodeToPngDataUri(string $blurhash): string
+    {
         $pixels = Blurhash::decode($blurhash, self::DECODE_SIZE, self::DECODE_SIZE);
 
         $image = imagecreatetruecolor(self::DECODE_SIZE, self::DECODE_SIZE);
@@ -87,17 +109,6 @@ class BlurhashService extends Component
         imagedestroy($image);
 
         return sprintf('data:image/png;base64,%s', base64_encode($data));
-    }
-
-    public function averageColor(?string $blurhash): ?string
-    {
-        if ($blurhash === null) {
-            return null;
-        }
-
-        $value = Base83::decode(substr($blurhash, 2, 4));
-
-        return ColorValidator::normalizeColor('#' . dechex($value));
     }
 
     private function encode(Asset $asset): ?string
