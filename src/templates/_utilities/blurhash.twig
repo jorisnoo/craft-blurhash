@@ -39,7 +39,6 @@
     <table class="data fullwidth">
         <thead>
             <tr>
-                <th></th>
                 <th>Filename</th>
                 <th>Volume</th>
             </tr>
@@ -47,9 +46,6 @@
         <tbody>
             {% for asset in missingAssets %}
                 <tr>
-                    <td style="width: 34px;">
-                        <img src="{{ asset.getThumbUrl(34) }}" width="34" height="34" alt="" style="border-radius: 3px; object-fit: cover;">
-                    </td>
                     <td>
                         <a href="{{ asset.cpEditUrl }}">{{ asset.filename }}</a>
                     </td>
