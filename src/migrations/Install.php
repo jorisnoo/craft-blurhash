@@ -8,6 +8,10 @@ class Install extends Migration
 {
     public function safeUp(): bool
     {
+        if ($this->db->tableExists('{{%blurhash}}')) {
+            return true;
+        }
+
         $this->createTable('{{%blurhash}}', [
             'id' => $this->primaryKey(),
             'assetId' => $this->integer()->notNull(),
