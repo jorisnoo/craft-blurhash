@@ -28,8 +28,17 @@ class BlurhashService extends Component
     {
         $record = $this->getRecord($asset) ?? new BlurhashRecord();
         $record->assetId = $asset->id;
-        $record->blurhash = $this->encode($asset);
-        $record->hasTransparency = $this->detectTransparency($asset);
+
+        try {
+            $localPath = ImageTransforms::getLocalImageSource($asset);
+            $record->blurhash = $this->encode($asset, $localPath);
+            $record->hasTransparency = $this->detectTransparency($localPath);
+        } catch (\Throwable $e) {
+            Craft::error("Failed to get local image for asset {$asset->id}: {$e->getMessage()}", __METHOD__);
+            $record->blurhash = null;
+            $record->hasTransparency = false;
+        }
+
         $record->save();
 
         return $this->recordCache[$asset->id] = $record;
@@ -111,41 +120,26 @@ class BlurhashService extends Component
         return sprintf('data:image/png;base64,%s', base64_encode($data));
     }
 
-    private function encode(Asset $asset): ?string
+    private function encode(Asset $asset, string $localPath): ?string
     {
         try {
-            $contents = $asset->getContents();
+            $image = Craft::$app->getImages()->loadImage($localPath);
+            $image->scaleToFit(self::SAMPLE_SIZE, self::SAMPLE_SIZE);
 
-            if ($asset->getExtension() === 'heic') {
-                $imagick = new \Imagick();
-                $imagick->readImageBlob($contents);
-                $imagick->setImageFormat('png');
-                $contents = $imagick->getImageBlob();
-            }
-
-            $source = imagecreatefromstring($contents);
-            if ($source === false) {
-                return null;
-            }
-
-            $sampleWidth = (int) round(self::SAMPLE_SIZE * min(1, $asset->width / $asset->height));
-            $sampleHeight = (int) round(self::SAMPLE_SIZE * min(1, $asset->height / $asset->width));
-
-            $sample = imagecreatetruecolor($sampleWidth, $sampleHeight);
-            imagecopyresized($sample, $source, 0, 0, 0, 0, $sampleWidth, $sampleHeight, $asset->width, $asset->height);
-            imagedestroy($source);
+            $resource = $image->getImagineImage()->getGdResource();
+            $sampleWidth = imagesx($resource);
+            $sampleHeight = imagesy($resource);
 
             $pixels = [];
             for ($y = 0; $y < $sampleHeight; ++$y) {
                 $row = [];
                 for ($x = 0; $x < $sampleWidth; ++$x) {
-                    $index = imagecolorat($sample, $x, $y);
-                    $colors = imagecolorsforindex($sample, $index);
+                    $index = imagecolorat($resource, $x, $y);
+                    $colors = imagecolorsforindex($resource, $index);
                     $row[] = [$colors['red'], $colors['green'], $colors['blue']];
                 }
                 $pixels[] = $row;
             }
-            imagedestroy($sample);
 
             $componentsX = $asset->width > $asset->height ? 6 : (int) ceil(6 * ($asset->width / $asset->height));
             $componentsY = $asset->height > $asset->width ? 6 : (int) ceil(6 * ($asset->height / $asset->width));
@@ -158,14 +152,12 @@ class BlurhashService extends Component
         }
     }
 
-    private function detectTransparency(Asset $asset): bool
+    private function detectTransparency(string $localPath): bool
     {
         try {
-            $localCopy = ImageTransforms::getLocalImageSource($asset);
-
-            return Craft::$app->getImages()->loadImage($localCopy, true)->getIsTransparent() ?? false;
+            return Craft::$app->getImages()->loadImage($localPath, true)->getIsTransparent() ?? false;
         } catch (\Throwable $e) {
-            Craft::error("Failed to detect transparency for asset {$asset->id}: {$e->getMessage()}", __METHOD__);
+            Craft::error("Failed to detect transparency: {$e->getMessage()}", __METHOD__);
 
             return false;
         }
