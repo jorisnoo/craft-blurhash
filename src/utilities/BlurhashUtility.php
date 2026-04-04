@@ -27,21 +27,14 @@ class BlurhashUtility extends Utility
 
     public static function contentHtml(): string
     {
-        $allowedMimeTypes = [
-            'image/jpeg',
-            'image/png',
-            'image/webp',
-            'image/gif',
-            'image/avif',
-            'image/bmp',
-            'image/tiff',
-        ];
+        $allowedMimeTypes = Plugin::ALLOWED_MIME_TYPES;
 
         $eligible = (new Query())
             ->from(Table::ASSETS)
             ->innerJoin(Table::ELEMENTS, '[[elements.id]] = [[assets.id]]')
             ->where(['elements.dateDeleted' => null])
             ->andWhere(['in', 'assets.kind', ['image']])
+            ->andWhere(['in', 'assets.mimeType', $allowedMimeTypes])
             ->count();
 
         $generated = (new Query())
@@ -61,9 +54,9 @@ class BlurhashUtility extends Utility
             ->limit(100)
             ->all();
 
-        $missingAssets = array_filter($missingAssets, function (Asset $asset) {
+        $missingAssets = array_values(array_filter($missingAssets, function (Asset $asset) {
             return Plugin::getInstance()->isProcessableImage($asset);
-        });
+        }));
 
         return \Craft::$app->getView()->renderTemplate('craft-blurhash/_utilities/blurhash', [
             'eligible' => $eligible,

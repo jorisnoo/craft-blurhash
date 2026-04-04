@@ -21,7 +21,7 @@ class Plugin extends BasePlugin
 {
     public string $schemaVersion = '1.0.0';
 
-    private const ALLOWED_MIME_TYPES = [
+    public const ALLOWED_MIME_TYPES = [
         'image/jpeg',
         'image/png',
         'image/webp',
