@@ -5,6 +5,7 @@ namespace Noo\CraftBlurhash\utilities;
 use craft\base\Utility;
 use craft\db\Query;
 use craft\db\Table;
+use craft\elements\Asset;
 use Noo\CraftBlurhash\Plugin;
 
 class BlurhashUtility extends Utility
@@ -49,9 +50,25 @@ class BlurhashUtility extends Utility
             ->where(['elements.dateDeleted' => null])
             ->count();
 
+        $existingIds = (new Query())
+            ->select('assetId')
+            ->from('{{%blurhash}}')
+            ->column();
+
+        $missingAssets = Asset::find()
+            ->kind('image')
+            ->id($existingIds ? ['not', ...$existingIds] : null)
+            ->limit(100)
+            ->all();
+
+        $missingAssets = array_filter($missingAssets, function (Asset $asset) {
+            return Plugin::getInstance()->isProcessableImage($asset);
+        });
+
         return \Craft::$app->getView()->renderTemplate('craft-blurhash/_utilities/blurhash', [
             'eligible' => $eligible,
             'generated' => $generated,
+            'missingAssets' => $missingAssets,
         ]);
     }
 }

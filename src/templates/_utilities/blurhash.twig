@@ -24,3 +24,38 @@
         <button type="submit" class="btn secondary">Regenerate All</button>
     </form>
 </div>
+
+{% if missingAssets | length %}
+    <hr>
+
+    <div class="readable">
+        <h2>Missing Assets</h2>
+        {% set missingCount = eligible - generated %}
+        {% if missingCount > missingAssets | length %}
+            <p>Showing {{ missingAssets | length }} of {{ missingCount }} assets without a blurhash.</p>
+        {% endif %}
+    </div>
+
+    <table class="data fullwidth">
+        <thead>
+            <tr>
+                <th>Preview</th>
+                <th>Filename</th>
+                <th>Volume</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for asset in missingAssets %}
+                <tr>
+                    <td>
+                        <img src="{{ asset.getThumbUrl(34) }}" width="34" height="34" alt="" style="border-radius: 3px; object-fit: cover;">
+                    </td>
+                    <td>
+                        <a href="{{ asset.cpEditUrl }}">{{ asset.filename }}</a>
+                    </td>
+                    <td>{{ asset.volume.name }}</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% endif %}
