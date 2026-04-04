@@ -11,7 +11,7 @@
     {% if generated < eligible %}
         <form method="post">
             {{ csrfInput() }}
-            {{ actionInput('craft-blurhash/blurhash/generate-missing') }}
+            {{ actionInput('blurhash/blurhash/generate-missing') }}
             {{ redirectInput('utilities/blurhash') }}
             <button type="submit" class="btn submit">Generate Missing</button>
         </form>
@@ -19,7 +19,7 @@
 
     <form method="post">
         {{ csrfInput() }}
-        {{ actionInput('craft-blurhash/blurhash/regenerate-all') }}
+        {{ actionInput('blurhash/blurhash/regenerate-all') }}
         {{ redirectInput('utilities/blurhash') }}
         <button type="submit" class="btn secondary">Regenerate All</button>
     </form>

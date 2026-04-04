@@ -9,6 +9,7 @@ use craft\validators\ColorValidator;
 use kornrunner\Blurhash\Base83;
 use kornrunner\Blurhash\Blurhash;
 use Noo\CraftBlurhash\models\BlurhashRecord;
+use Noo\CraftBlurhash\Plugin;
 use yii\base\Component;
 
 class BlurhashService extends Component
@@ -33,6 +34,11 @@ class BlurhashService extends Component
     {
         $record = $this->getRecord($asset);
 
+        if (! $record && $this->shouldComputeOnDemand($asset)) {
+            $this->computeAndStore($asset);
+            $record = $this->getRecord($asset);
+        }
+
         return $record?->blurhash;
     }
 
@@ -40,7 +46,18 @@ class BlurhashService extends Component
     {
         $record = $this->getRecord($asset);
 
+        if (! $record && $this->shouldComputeOnDemand($asset)) {
+            $this->computeAndStore($asset);
+            $record = $this->getRecord($asset);
+        }
+
         return (bool) ($record?->hasTransparency ?? false);
+    }
+
+    private function shouldComputeOnDemand(Asset $asset): bool
+    {
+        return Plugin::getInstance()->getSettings()->computeOnDemand
+            && Plugin::getInstance()->isProcessableImage($asset);
     }
 
     private function getRecord(Asset $asset): ?BlurhashRecord

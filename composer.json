@@ -28,7 +28,7 @@
         }
     },
     "extra": {
-        "handle": "craft-blurhash",
+        "handle": "blurhash",
         "name": "Blurhash",
         "developer": "Joris Noordermeer",
         "documentationUrl": "https://github.com/jorisnoo/craft-blurhash",

@@ -9,6 +9,7 @@ use craft\events\ModelEvent;
 use craft\events\RegisterComponentTypesEvent;
 use craft\services\Utilities;
 use Noo\CraftBlurhash\jobs\ComputeBlurhashJob;
+use Noo\CraftBlurhash\models\Settings;
 use Noo\CraftBlurhash\services\BlurhashService;
 use Noo\CraftBlurhash\twig\BlurhashExtension;
 use Noo\CraftBlurhash\utilities\BlurhashUtility;
@@ -16,6 +17,8 @@ use yii\base\Event;
 
 /**
  * @property-read BlurhashService $blurhash
+ * @property-read Settings $settings
+ * @method Settings getSettings()
  */
 class Plugin extends BasePlugin
 {
@@ -74,5 +77,10 @@ class Plugin extends BasePlugin
     public function isProcessableImage(Asset $asset): bool
     {
         return in_array($asset->mimeType, self::ALLOWED_MIME_TYPES, true);
+    }
+
+    protected function createSettingsModel(): Settings
+    {
+        return new Settings();
     }
 }

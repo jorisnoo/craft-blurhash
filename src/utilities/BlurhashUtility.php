@@ -27,14 +27,12 @@ class BlurhashUtility extends Utility
 
     public static function contentHtml(): string
     {
-        $allowedMimeTypes = Plugin::ALLOWED_MIME_TYPES;
-
         $eligible = (new Query())
             ->from(Table::ASSETS)
             ->innerJoin(Table::ELEMENTS, '[[elements.id]] = [[assets.id]]')
             ->where(['elements.dateDeleted' => null])
-            ->andWhere(['in', 'assets.kind', ['image']])
-            ->andWhere(['in', 'assets.mimeType', $allowedMimeTypes])
+            ->andWhere(['assets.kind' => 'image'])
+            ->andWhere(['in', 'assets.mimeType', Plugin::ALLOWED_MIME_TYPES])
             ->count();
 
         $generated = (new Query())
@@ -48,17 +46,19 @@ class BlurhashUtility extends Utility
             ->from('{{%blurhash}}')
             ->column();
 
-        $missingAssets = Asset::find()
+        $missingQuery = Asset::find()
             ->kind('image')
-            ->id($existingIds ? ['not', ...$existingIds] : null)
-            ->limit(100)
-            ->all();
+            ->limit(100);
 
-        $missingAssets = array_values(array_filter($missingAssets, function (Asset $asset) {
+        if ($existingIds) {
+            $missingQuery->id(['not', ...$existingIds]);
+        }
+
+        $missingAssets = array_values(array_filter($missingQuery->all(), function (Asset $asset) {
             return Plugin::getInstance()->isProcessableImage($asset);
         }));
 
-        return \Craft::$app->getView()->renderTemplate('craft-blurhash/_utilities/blurhash', [
+        return \Craft::$app->getView()->renderTemplate('blurhash/_utilities/blurhash', [
             'eligible' => $eligible,
             'generated' => $generated,
             'missingAssets' => $missingAssets,
