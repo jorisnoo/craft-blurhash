@@ -6,13 +6,15 @@ use Craft;
 use craft\db\Query;
 use craft\elements\Asset;
 use craft\web\Controller;
-use Noo\CraftBlurhash\jobs\ComputeBlurhashJob;
+use Noo\CraftBlurhash\jobs\ComputeBlurhashBatchJob;
 use Noo\CraftBlurhash\models\BlurhashRecord;
 use Noo\CraftBlurhash\Plugin;
 use yii\web\Response;
 
 class BlurhashController extends Controller
 {
+    private const BATCH_SIZE = 50;
+
     public function actionGenerateMissing(): Response
     {
         $this->requirePostRequest();
@@ -23,20 +25,11 @@ class BlurhashController extends Controller
             ->from('{{%blurhash}}')
             ->column();
 
-        $assets = Asset::find()
+        $query = Asset::find()
             ->kind('image')
-            ->id($existingIds ? ['not', ...$existingIds] : null)
-            ->all();
+            ->id($existingIds ? ['not', ...$existingIds] : null);
 
-        $count = 0;
-        foreach ($assets as $asset) {
-            if (Plugin::getInstance()->isProcessableImage($asset)) {
-                Craft::$app->getQueue()->push(new ComputeBlurhashJob([
-                    'assetId' => $asset->id,
-                ]));
-                $count++;
-            }
-        }
+        $count = $this->pushBatchJobs($query);
 
         Craft::$app->getSession()->setNotice("Queued $count assets for blurhash generation.");
 
@@ -50,20 +43,42 @@ class BlurhashController extends Controller
 
         BlurhashRecord::deleteAll();
 
-        $assets = Asset::find()->kind('image')->all();
+        $query = Asset::find()->kind('image');
 
-        $count = 0;
-        foreach ($assets as $asset) {
-            if (Plugin::getInstance()->isProcessableImage($asset)) {
-                Craft::$app->getQueue()->push(new ComputeBlurhashJob([
-                    'assetId' => $asset->id,
-                ]));
-                $count++;
-            }
-        }
+        $count = $this->pushBatchJobs($query);
 
         Craft::$app->getSession()->setNotice("Queued $count assets for blurhash regeneration.");
 
         return $this->redirectToPostedUrl();
+    }
+
+    private function pushBatchJobs(\craft\elements\db\AssetQuery $query): int
+    {
+        $batch = [];
+        $count = 0;
+
+        foreach ($query->each() as $asset) {
+            if (! Plugin::getInstance()->isProcessableImage($asset)) {
+                continue;
+            }
+
+            $batch[] = $asset->id;
+            $count++;
+
+            if (count($batch) >= self::BATCH_SIZE) {
+                Craft::$app->getQueue()->push(new ComputeBlurhashBatchJob([
+                    'assetIds' => $batch,
+                ]));
+                $batch = [];
+            }
+        }
+
+        if (! empty($batch)) {
+            Craft::$app->getQueue()->push(new ComputeBlurhashBatchJob([
+                'assetIds' => $batch,
+            ]));
+        }
+
+        return $count;
     }
 }
