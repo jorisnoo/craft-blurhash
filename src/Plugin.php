@@ -3,13 +3,15 @@
 namespace Noo\CraftBlurhash;
 
 use Craft;
-use craft\base\Model;
 use craft\base\Plugin as BasePlugin;
 use craft\elements\Asset;
 use craft\events\ModelEvent;
+use craft\events\RegisterComponentTypesEvent;
+use craft\services\Utilities;
 use Noo\CraftBlurhash\jobs\ComputeBlurhashJob;
 use Noo\CraftBlurhash\services\BlurhashService;
 use Noo\CraftBlurhash\twig\BlurhashExtension;
+use Noo\CraftBlurhash\utilities\BlurhashUtility;
 use yii\base\Event;
 
 /**
@@ -44,6 +46,14 @@ class Plugin extends BasePlugin
         Craft::$app->view->registerTwigExtension(new BlurhashExtension());
 
         Event::on(
+            Utilities::class,
+            Utilities::EVENT_REGISTER_UTILITIES,
+            function (RegisterComponentTypesEvent $event) {
+                $event->types[] = BlurhashUtility::class;
+            }
+        );
+
+        Event::on(
             Asset::class,
             Asset::EVENT_AFTER_SAVE,
             function (ModelEvent $event) {
@@ -61,7 +71,7 @@ class Plugin extends BasePlugin
         );
     }
 
-    private function isProcessableImage(Asset $asset): bool
+    public function isProcessableImage(Asset $asset): bool
     {
         return in_array($asset->mimeType, self::ALLOWED_MIME_TYPES, true);
     }

@@ -1,0 +1,26 @@
+{% set percentage = eligible > 0 ? ((generated / eligible) * 100)|round : 0 %}
+
+<div class="readable">
+    <h2>Blurhash Status</h2>
+    <p>{{ generated }} / {{ eligible }} image assets have a blurhash computed ({{ percentage }}%).</p>
+</div>
+
+<hr>
+
+<div class="buttons">
+    {% if generated < eligible %}
+        <form method="post">
+            {{ csrfInput() }}
+            {{ actionInput('craft-blurhash/blurhash/generate-missing') }}
+            {{ redirectInput('utilities/blurhash') }}
+            <button type="submit" class="btn submit">Generate Missing</button>
+        </form>
+    {% endif %}
+
+    <form method="post">
+        {{ csrfInput() }}
+        {{ actionInput('craft-blurhash/blurhash/regenerate-all') }}
+        {{ redirectInput('utilities/blurhash') }}
+        <button type="submit" class="btn secondary">Regenerate All</button>
+    </form>
+</div>

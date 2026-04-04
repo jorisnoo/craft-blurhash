@@ -31,12 +31,21 @@ class BlurhashService extends Component
 
     public function getBlurhash(Asset $asset): ?string
     {
-        return BlurhashRecord::findOne(['assetId' => $asset->id])?->blurhash;
+        $record = $this->getRecord($asset);
+
+        return $record?->blurhash;
     }
 
     public function getHasTransparency(Asset $asset): bool
     {
-        return (bool) (BlurhashRecord::findOne(['assetId' => $asset->id])?->hasTransparency ?? false);
+        $record = $this->getRecord($asset);
+
+        return (bool) ($record?->hasTransparency ?? false);
+    }
+
+    private function getRecord(Asset $asset): ?BlurhashRecord
+    {
+        return BlurhashRecord::findOne(['assetId' => $asset->id]);
     }
 
     public function blurhashToUri(?string $blurhash): ?string
