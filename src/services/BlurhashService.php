@@ -126,7 +126,7 @@ class BlurhashService extends Component
             $image = Craft::$app->getImages()->loadImage($localPath);
             $image->scaleToFit(self::SAMPLE_SIZE, self::SAMPLE_SIZE);
 
-            $resource = $image->getImagineImage()->getGdResource();
+            $resource = imagecreatefromstring($image->getImagineImage()->get('png'));
             $sampleWidth = imagesx($resource);
             $sampleHeight = imagesy($resource);
 
@@ -140,6 +140,7 @@ class BlurhashService extends Component
                 }
                 $pixels[] = $row;
             }
+            imagedestroy($resource);
 
             $componentsX = $asset->width > $asset->height ? 6 : (int) ceil(6 * ($asset->width / $asset->height));
             $componentsY = $asset->height > $asset->width ? 6 : (int) ceil(6 * ($asset->height / $asset->width));
