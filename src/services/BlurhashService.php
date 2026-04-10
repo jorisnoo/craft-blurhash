@@ -32,7 +32,7 @@ class BlurhashService extends Component
         try {
             $localPath = ImageTransforms::getLocalImageSource($asset);
             $record->blurhash = $this->encode($asset, $localPath);
-            $record->hasTransparency = $this->detectTransparency($localPath);
+            $record->hasTransparency = $this->detectTransparency($asset, $localPath);
         } catch (\Throwable $e) {
             Craft::error("Failed to get local image for asset {$asset->id}: {$e->getMessage()}", __METHOD__);
             $record->blurhash = null;
@@ -123,24 +123,21 @@ class BlurhashService extends Component
     private function encode(Asset $asset, string $localPath): ?string
     {
         try {
-            $image = Craft::$app->getImages()->loadImage($localPath);
-            $image->scaleToFit(self::SAMPLE_SIZE, self::SAMPLE_SIZE);
-
-            $resource = imagecreatefromstring($image->getImagineImage()->get('png'));
-            $sampleWidth = imagesx($resource);
-            $sampleHeight = imagesy($resource);
+            $sample = $this->createThumbnail($localPath);
+            $sampleWidth = imagesx($sample);
+            $sampleHeight = imagesy($sample);
 
             $pixels = [];
             for ($y = 0; $y < $sampleHeight; ++$y) {
                 $row = [];
                 for ($x = 0; $x < $sampleWidth; ++$x) {
-                    $index = imagecolorat($resource, $x, $y);
-                    $colors = imagecolorsforindex($resource, $index);
+                    $index = imagecolorat($sample, $x, $y);
+                    $colors = imagecolorsforindex($sample, $index);
                     $row[] = [$colors['red'], $colors['green'], $colors['blue']];
                 }
                 $pixels[] = $row;
             }
-            imagedestroy($resource);
+            imagedestroy($sample);
 
             $componentsX = $asset->width > $asset->height ? 6 : (int) ceil(6 * ($asset->width / $asset->height));
             $componentsY = $asset->height > $asset->width ? 6 : (int) ceil(6 * ($asset->height / $asset->width));
@@ -153,8 +150,49 @@ class BlurhashService extends Component
         }
     }
 
-    private function detectTransparency(string $localPath): bool
+    /**
+     * Creates a small GD thumbnail for pixel extraction.
+     *
+     * Uses Imagick with a JPEG size hint when available to avoid
+     * decompressing the full image into memory.
+     *
+     * @return \GdImage
+     */
+    private function createThumbnail(string $localPath): \GdImage
     {
+        if (extension_loaded('imagick')) {
+            $imagick = new \Imagick();
+            $imagick->setOption('jpeg:size', (self::SAMPLE_SIZE * 2).'x'.(self::SAMPLE_SIZE * 2));
+            $imagick->readImage($localPath);
+            $imagick->thumbnailImage(self::SAMPLE_SIZE, self::SAMPLE_SIZE, true);
+            $imagick->setImageFormat('png');
+            $blob = $imagick->getImageBlob();
+            $imagick->clear();
+            $imagick->destroy();
+
+            return imagecreatefromstring($blob);
+        }
+
+        $source = imagecreatefromstring(file_get_contents($localPath));
+        $srcWidth = imagesx($source);
+        $srcHeight = imagesy($source);
+
+        $sampleWidth = (int) round(self::SAMPLE_SIZE * min(1, $srcWidth / $srcHeight));
+        $sampleHeight = (int) round(self::SAMPLE_SIZE * min(1, $srcHeight / $srcWidth));
+
+        $sample = imagecreatetruecolor($sampleWidth, $sampleHeight);
+        imagecopyresized($sample, $source, 0, 0, 0, 0, $sampleWidth, $sampleHeight, $srcWidth, $srcHeight);
+        imagedestroy($source);
+
+        return $sample;
+    }
+
+    private function detectTransparency(Asset $asset, string $localPath): bool
+    {
+        if (! in_array($asset->mimeType, ['image/png', 'image/webp', 'image/gif'], true)) {
+            return false;
+        }
+
         try {
             return Craft::$app->getImages()->loadImage($localPath, true)->getIsTransparent() ?? false;
         } catch (\Throwable $e) {
