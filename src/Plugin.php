@@ -76,7 +76,8 @@ class Plugin extends BasePlugin
 
     public function isProcessableImage(Asset $asset): bool
     {
-        return in_array($asset->mimeType, self::ALLOWED_MIME_TYPES, true);
+        return $asset->getVolumeId() !== null
+            && in_array($asset->mimeType, self::ALLOWED_MIME_TYPES, true);
     }
 
     protected function createSettingsModel(): Settings
