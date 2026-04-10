@@ -19,6 +19,9 @@
         "craftcms/cms": "^5.0.0",
         "kornrunner/blurhash": "^1.2"
     },
+    "suggest": {
+        "webhubworks/craft-ohdear": "Required for the MissingBlurhashCheck health check"
+    },
     "require-dev": {
         "pestphp/pest": "^4.4"
     },
