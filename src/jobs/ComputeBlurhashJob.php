@@ -18,7 +18,13 @@ class ComputeBlurhashJob extends BaseJob
             return;
         }
 
-        Plugin::getInstance()->blurhash->computeAndStore($asset);
+        $blurhash = Plugin::getInstance()->blurhash;
+
+        if (! $blurhash->needsCompute($asset)) {
+            return;
+        }
+
+        $blurhash->computeAndStore($asset);
     }
 
     protected function defaultDescription(): ?string

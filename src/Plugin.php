@@ -67,6 +67,10 @@ class Plugin extends BasePlugin
                     return;
                 }
 
+                if (! $this->blurhash->needsCompute($asset)) {
+                    return;
+                }
+
                 Craft::$app->getQueue()->push(new ComputeBlurhashJob([
                     'assetId' => $asset->id,
                 ]));

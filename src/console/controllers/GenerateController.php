@@ -54,7 +54,7 @@ class GenerateController extends Controller
             }
 
             $this->stdout("  [{$asset->id}] {$asset->filename}...");
-            $service->computeAndStore($asset);
+            $service->computeAndStore($asset, $this->force);
             $this->stdout(" done\n");
             $processed++;
         }

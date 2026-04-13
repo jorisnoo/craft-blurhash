@@ -25,19 +25,31 @@ class BlurhashService extends Component
     /** @var array<string, string> */
     private array $uriCache = [];
 
-    public function computeAndStore(Asset $asset): BlurhashRecord
+    public function computeAndStore(Asset $asset, bool $force = false): BlurhashRecord
     {
-        $record = $this->getRecord($asset) ?? new BlurhashRecord();
+        $existing = $this->getRecord($asset);
+
+        if (!$force && $existing !== null && $existing->blurhash !== null) {
+            return $existing;
+        }
+
+        $record = $existing ?? new BlurhashRecord();
         $record->assetId = $asset->id;
 
+        $tempPath = null;
         try {
-            $localPath = ImageTransforms::getLocalImageSource($asset);
+            $tempPath = $this->fetchCloudinaryThumbnail($asset);
+            $localPath = $tempPath ?? ImageTransforms::getLocalImageSource($asset);
             $record->blurhash = $this->encode($asset, $localPath);
             $record->hasTransparency = $this->detectTransparency($asset, $localPath);
         } catch (\Throwable $e) {
             Craft::error("Failed to get local image for asset {$asset->id}: {$e->getMessage()}", __METHOD__);
             $record->blurhash = null;
             $record->hasTransparency = false;
+        } finally {
+            if ($tempPath !== null && file_exists($tempPath)) {
+                @unlink($tempPath);
+            }
         }
 
         $record->save();
@@ -45,9 +57,62 @@ class BlurhashService extends Component
         return $this->recordCache[$asset->id] = $record;
     }
 
+    private function fetchCloudinaryThumbnail(Asset $asset): ?string
+    {
+        if (! $asset->hasMethod('getCloudinaryUrl')) {
+            return null;
+        }
+
+        $wantsAlpha = in_array($asset->mimeType, ['image/png', 'image/webp', 'image/gif'], true);
+
+        try {
+            $url = $asset->getCloudinaryUrl([
+                'width' => 128,
+                'crop' => 'limit',
+                'quality' => 'auto:low',
+                'format' => $wantsAlpha ? 'png' : 'jpg',
+            ]);
+        } catch (\Throwable $e) {
+            Craft::error("Failed to build Cloudinary thumbnail URL for asset {$asset->id}: {$e->getMessage()}", __METHOD__);
+            return null;
+        }
+
+        $data = @file_get_contents($url);
+        if ($data === false) {
+            return null;
+        }
+
+        $path = tempnam(sys_get_temp_dir(), 'blurhash_');
+        if ($path === false) {
+            return null;
+        }
+
+        if (file_put_contents($path, $data) === false) {
+            @unlink($path);
+            return null;
+        }
+
+        return $path;
+    }
+
     public function getBlurhash(Asset $asset): ?string
     {
         return $this->resolve($asset)?->blurhash;
+    }
+
+    public function needsCompute(Asset $asset): bool
+    {
+        $record = $this->getRecord($asset);
+
+        if ($record === null || $record->blurhash === null) {
+            return true;
+        }
+
+        if ($asset->dateModified !== null && $record->dateUpdated !== null) {
+            return $asset->dateModified > $record->dateUpdated;
+        }
+
+        return false;
     }
 
     public function getHasTransparency(Asset $asset): bool
