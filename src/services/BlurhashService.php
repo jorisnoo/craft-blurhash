@@ -3,6 +3,7 @@
 namespace Noo\CraftBlurhash\services;
 
 use Craft;
+use craft\db\Query;
 use craft\elements\Asset;
 use craft\helpers\ImageTransforms;
 use craft\validators\ColorValidator;
@@ -61,6 +62,45 @@ class BlurhashService extends Component
         }
 
         return $this->uriCache[$blurhash] ??= $this->decodeToPngDataUri($blurhash);
+    }
+
+    /**
+     * @return array{eligible: int, generated: int, missing: int, missingAssets: Asset[]}
+     */
+    public function getStats(): array
+    {
+        $plugin = Plugin::getInstance();
+
+        $generatedIds = (new Query())
+            ->select('assetId')
+            ->from('{{%blurhash}}')
+            ->where(['not', ['blurhash' => null]])
+            ->column();
+
+        $eligible = 0;
+        $generated = 0;
+        $missingAssets = [];
+
+        foreach (Asset::find()->kind('image')->each() as $asset) {
+            if (! $plugin->isProcessableImage($asset)) {
+                continue;
+            }
+
+            $eligible++;
+
+            if (in_array($asset->id, $generatedIds)) {
+                $generated++;
+            } else {
+                $missingAssets[] = $asset;
+            }
+        }
+
+        return [
+            'eligible' => $eligible,
+            'generated' => $generated,
+            'missing' => $eligible - $generated,
+            'missingAssets' => $missingAssets,
+        ];
     }
 
     public function averageColor(?string $blurhash): ?string

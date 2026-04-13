@@ -3,8 +3,6 @@
 namespace Noo\CraftBlurhash\utilities;
 
 use craft\base\Utility;
-use craft\db\Query;
-use craft\elements\Asset;
 use Noo\CraftBlurhash\Plugin;
 
 class BlurhashUtility extends Utility
@@ -24,40 +22,19 @@ class BlurhashUtility extends Utility
         return 'image';
     }
 
+    public static function badgeCount(): int
+    {
+        return Plugin::getInstance()->blurhash->getStats()['missing'];
+    }
+
     public static function contentHtml(): string
     {
-        $plugin = Plugin::getInstance();
-
-        $generatedIds = (new Query())
-            ->select('assetId')
-            ->from('{{%blurhash}}')
-            ->where(['not', ['blurhash' => null]])
-            ->column();
-
-        $allImages = Asset::find()
-            ->kind('image')
-            ->all();
-
-        $eligibleAssets = array_filter($allImages, function (Asset $asset) use ($plugin) {
-            return $plugin->isProcessableImage($asset);
-        });
-
-        $eligible = count($eligibleAssets);
-        $generated = 0;
-        $missingAssets = [];
-
-        foreach ($eligibleAssets as $asset) {
-            if (in_array($asset->id, $generatedIds)) {
-                $generated++;
-            } else {
-                $missingAssets[] = $asset;
-            }
-        }
+        $stats = Plugin::getInstance()->blurhash->getStats();
 
         return \Craft::$app->getView()->renderTemplate('blurhash/_utilities/blurhash', [
-            'eligible' => $eligible,
-            'generated' => $generated,
-            'missingAssets' => $missingAssets,
+            'eligible' => $stats['eligible'],
+            'generated' => $stats['generated'],
+            'missingAssets' => $stats['missingAssets'],
         ]);
     }
 }

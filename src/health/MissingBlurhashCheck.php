@@ -2,8 +2,6 @@
 
 namespace Noo\CraftBlurhash\health;
 
-use craft\db\Query;
-use craft\elements\Asset;
 use Noo\CraftBlurhash\Plugin;
 use OhDear\HealthCheckResults\CheckResult;
 use webhubworks\ohdear\health\checks\Check;
@@ -30,28 +28,9 @@ class MissingBlurhashCheck extends Check
 
     public function run(): CheckResult
     {
-        $plugin = Plugin::getInstance();
-
-        $generatedIds = (new Query())
-            ->select('assetId')
-            ->from('{{%blurhash}}')
-            ->where(['not', ['blurhash' => null]])
-            ->column();
-
-        $eligibleCount = 0;
-        $missingCount = 0;
-
-        foreach (Asset::find()->kind('image')->each() as $asset) {
-            if (! $plugin->isProcessableImage($asset)) {
-                continue;
-            }
-
-            $eligibleCount++;
-
-            if (! in_array($asset->id, $generatedIds)) {
-                $missingCount++;
-            }
-        }
+        $stats = Plugin::getInstance()->blurhash->getStats();
+        $eligibleCount = $stats['eligible'];
+        $missingCount = $stats['missing'];
 
         $result = new CheckResult(
             name: 'MissingBlurhash',
@@ -59,7 +38,7 @@ class MissingBlurhashCheck extends Check
             shortSummary: "$missingCount/$eligibleCount missing",
             meta: [
                 'eligible' => $eligibleCount,
-                'generated' => $eligibleCount - $missingCount,
+                'generated' => $stats['generated'],
                 'missing' => $missingCount,
             ],
         );
