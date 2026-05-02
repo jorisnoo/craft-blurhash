@@ -63,7 +63,7 @@ class Plugin extends BasePlugin
                 /** @var Asset $asset */
                 $asset = $event->sender;
 
-                if (! $this->isProcessableImage($asset)) {
+                if (! $this->isProcessable($asset)) {
                     return;
                 }
 
@@ -78,10 +78,24 @@ class Plugin extends BasePlugin
         );
     }
 
+    public function isProcessable(Asset $asset): bool
+    {
+        return $this->isProcessableImage($asset)
+            || $this->isProcessableBunnyStreamVideo($asset);
+    }
+
     public function isProcessableImage(Asset $asset): bool
     {
         return $asset->getVolumeId() !== null
             && in_array($asset->mimeType, self::ALLOWED_MIME_TYPES, true);
+    }
+
+    public function isProcessableBunnyStreamVideo(Asset $asset): bool
+    {
+        return $asset->getVolumeId() !== null
+            && $asset->kind === Asset::KIND_VIDEO
+            && $asset->hasMethod('isBunnyStreamVideoReady')
+            && $asset->isBunnyStreamVideoReady();
     }
 
     protected function createSettingsModel(): Settings

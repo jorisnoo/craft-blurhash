@@ -24,9 +24,10 @@ class GenerateController extends Controller
 
     public function actionIndex(?int $assetId = null): int
     {
-        $service = Plugin::getInstance()->blurhash;
+        $plugin = Plugin::getInstance();
+        $service = $plugin->blurhash;
 
-        $query = Asset::find()->kind('image');
+        $query = Asset::find()->kind(['image', 'video']);
 
         if ($assetId) {
             $query->id($assetId);
@@ -35,18 +36,24 @@ class GenerateController extends Controller
         $total = $query->count();
 
         if ($total === 0) {
-            $this->stdout("No image assets found.\n");
+            $this->stdout("No assets found.\n");
 
             return ExitCode::OK;
         }
 
-        $this->stdout("Processing {$total} image asset(s)...\n");
+        $this->stdout("Processing {$total} asset(s)...\n");
 
         $processed = 0;
         $skipped = 0;
 
         foreach ($query->each() as $asset) {
             /** @var Asset $asset */
+            if (! $plugin->isProcessable($asset)) {
+                $skipped++;
+
+                continue;
+            }
+
             if (! $this->force && $service->getBlurhash($asset) !== null) {
                 $skipped++;
 

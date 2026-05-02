@@ -38,7 +38,8 @@ class BlurhashService extends Component
 
         $tempPath = null;
         try {
-            $tempPath = $this->fetchCloudinaryThumbnail($asset);
+            $tempPath = $this->fetchCloudinaryThumbnail($asset)
+                ?? $this->fetchBunnyStreamThumbnail($asset);
             $localPath = $tempPath ?? ImageTransforms::getLocalImageSource($asset);
             $record->blurhash = $this->encode($asset, $localPath);
             $record->hasTransparency = $this->detectTransparency($asset, $localPath);
@@ -77,6 +78,31 @@ class BlurhashService extends Component
             return null;
         }
 
+        return $this->downloadToTempFile($url);
+    }
+
+    private function fetchBunnyStreamThumbnail(Asset $asset): ?string
+    {
+        if (! $asset->hasMethod('getBunnyStreamThumbnailUrl')) {
+            return null;
+        }
+
+        try {
+            $url = $asset->getBunnyStreamThumbnailUrl();
+        } catch (\Throwable $e) {
+            Craft::error("Failed to build Bunny Stream thumbnail URL for asset {$asset->id}: {$e->getMessage()}", __METHOD__);
+            return null;
+        }
+
+        if (! $url) {
+            return null;
+        }
+
+        return $this->downloadToTempFile($url);
+    }
+
+    private function downloadToTempFile(string $url): ?string
+    {
         $data = @file_get_contents($url);
         if ($data === false) {
             return null;
@@ -146,8 +172,8 @@ class BlurhashService extends Component
         $generated = 0;
         $missingAssets = [];
 
-        foreach (Asset::find()->kind('image')->each() as $asset) {
-            if (! $plugin->isProcessableImage($asset)) {
+        foreach (Asset::find()->kind(['image', 'video'])->each() as $asset) {
+            if (! $plugin->isProcessable($asset)) {
                 continue;
             }
 
@@ -193,7 +219,7 @@ class BlurhashService extends Component
     private function shouldComputeOnDemand(Asset $asset): bool
     {
         return Plugin::getInstance()->getSettings()->computeOnDemand
-            && Plugin::getInstance()->isProcessableImage($asset);
+            && Plugin::getInstance()->isProcessable($asset);
     }
 
     private function getRecord(Asset $asset): ?BlurhashRecord
@@ -244,8 +270,10 @@ class BlurhashService extends Component
             }
             imagedestroy($sample);
 
-            $componentsX = $asset->width > $asset->height ? 6 : (int) ceil(6 * ($asset->width / $asset->height));
-            $componentsY = $asset->height > $asset->width ? 6 : (int) ceil(6 * ($asset->height / $asset->width));
+            [$sourceWidth, $sourceHeight] = $this->resolveSourceDimensions($asset, $localPath);
+
+            $componentsX = $sourceWidth > $sourceHeight ? 6 : (int) ceil(6 * ($sourceWidth / $sourceHeight));
+            $componentsY = $sourceHeight > $sourceWidth ? 6 : (int) ceil(6 * ($sourceHeight / $sourceWidth));
 
             return Blurhash::encode($pixels, $componentsX, $componentsY);
         } catch (\Throwable $e) {
@@ -253,6 +281,23 @@ class BlurhashService extends Component
 
             return null;
         }
+    }
+
+    /**
+     * @return array{int, int}
+     */
+    private function resolveSourceDimensions(Asset $asset, string $localPath): array
+    {
+        if ($asset->width > 0 && $asset->height > 0) {
+            return [$asset->width, $asset->height];
+        }
+
+        $size = @getimagesize($localPath);
+        if ($size !== false && $size[0] > 0 && $size[1] > 0) {
+            return [$size[0], $size[1]];
+        }
+
+        return [1, 1];
     }
 
     /**

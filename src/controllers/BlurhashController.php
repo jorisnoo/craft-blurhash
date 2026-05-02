@@ -27,7 +27,7 @@ class BlurhashController extends Controller
             ->column();
 
         $query = Asset::find()
-            ->kind('image')
+            ->kind(['image', 'video'])
             ->id($generatedIds ? ['not', ...$generatedIds] : null);
 
         $count = $this->pushBatchJobs($query);
@@ -44,7 +44,7 @@ class BlurhashController extends Controller
 
         BlurhashRecord::deleteAll();
 
-        $query = Asset::find()->kind('image');
+        $query = Asset::find()->kind(['image', 'video']);
 
         $count = $this->pushBatchJobs($query);
 
@@ -59,7 +59,7 @@ class BlurhashController extends Controller
         $count = 0;
 
         foreach ($query->each() as $asset) {
-            if (! Plugin::getInstance()->isProcessableImage($asset)) {
+            if (! Plugin::getInstance()->isProcessable($asset)) {
                 continue;
             }
 
