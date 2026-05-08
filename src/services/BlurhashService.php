@@ -158,7 +158,7 @@ class BlurhashService extends Component
     /**
      * @return array{eligible: int, generated: int, missing: int, missingAssets: Asset[]}
      */
-    public function getStats(): array
+    public function getStats(?int $ignoreCreatedWithinSeconds = null): array
     {
         $plugin = Plugin::getInstance();
 
@@ -168,12 +168,20 @@ class BlurhashService extends Component
             ->where(['not', ['blurhash' => null]])
             ->column();
 
+        $cutoff = $ignoreCreatedWithinSeconds !== null
+            ? (new \DateTimeImmutable())->modify("-{$ignoreCreatedWithinSeconds} seconds")
+            : null;
+
         $eligible = 0;
         $generated = 0;
         $missingAssets = [];
 
         foreach (Asset::find()->kind(['image', 'video'])->each() as $asset) {
             if (! $plugin->isProcessable($asset)) {
+                continue;
+            }
+
+            if ($cutoff && $asset->dateCreated && $asset->dateCreated > $cutoff) {
                 continue;
             }
 
