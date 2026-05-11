@@ -36,13 +36,27 @@ class BlurhashService extends Component
         $record = $existing ?? new BlurhashRecord();
         $record->assetId = $asset->id;
 
+        if ($prebuilt = $this->fetchBunnyStreamBlurhash($asset)) {
+            $record->blurhash = $prebuilt;
+            $record->hasTransparency = false;
+            $record->save();
+
+            return $this->recordCache[$asset->id] = $record;
+        }
+
         $tempPath = null;
         try {
             $tempPath = $this->fetchCloudinaryThumbnail($asset)
                 ?? $this->fetchBunnyStreamThumbnail($asset);
-            $localPath = $tempPath ?? ImageTransforms::getLocalImageSource($asset);
-            $record->blurhash = $this->encode($asset, $localPath);
-            $record->hasTransparency = $this->detectTransparency($asset, $localPath);
+
+            if ($tempPath === null && $asset->kind === Asset::KIND_VIDEO) {
+                $record->blurhash = null;
+                $record->hasTransparency = false;
+            } else {
+                $localPath = $tempPath ?? ImageTransforms::getLocalImageSource($asset);
+                $record->blurhash = $this->encode($asset, $localPath);
+                $record->hasTransparency = $this->detectTransparency($asset, $localPath);
+            }
         } catch (\Throwable $e) {
             Craft::error("Failed to get local image for asset {$asset->id}: {$e->getMessage()}", __METHOD__);
             $record->blurhash = null;
@@ -56,6 +70,20 @@ class BlurhashService extends Component
         $record->save();
 
         return $this->recordCache[$asset->id] = $record;
+    }
+
+    private function fetchBunnyStreamBlurhash(Asset $asset): ?string
+    {
+        if (! $asset->hasMethod('getBunnyStreamThumbnailBlurhash')) {
+            return null;
+        }
+
+        try {
+            return $asset->getBunnyStreamThumbnailBlurhash() ?: null;
+        } catch (\Throwable $e) {
+            Craft::error("Failed to read Bunny Stream blurhash for asset {$asset->id}: {$e->getMessage()}", __METHOD__);
+            return null;
+        }
     }
 
     private function fetchCloudinaryThumbnail(Asset $asset): ?string
