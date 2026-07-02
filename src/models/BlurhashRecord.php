@@ -9,6 +9,7 @@ use craft\db\ActiveRecord;
  * @property int $assetId
  * @property ?string $blurhash
  * @property bool $hasTransparency
+ * @property ?string $sourceDateModified
  */
 class BlurhashRecord extends ActiveRecord
 {

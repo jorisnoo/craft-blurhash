@@ -17,6 +17,7 @@ class Install extends Migration
             'assetId' => $this->integer()->notNull(),
             'blurhash' => $this->string()->null(),
             'hasTransparency' => $this->boolean()->notNull()->defaultValue(false),
+            'sourceDateModified' => $this->dateTime()->null(),
             'dateCreated' => $this->dateTime()->notNull(),
             'dateUpdated' => $this->dateTime()->notNull(),
             'uid' => $this->uid(),

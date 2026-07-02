@@ -35,6 +35,7 @@ class BlurhashService extends Component
 
         $record = $existing ?? new BlurhashRecord();
         $record->assetId = $asset->id;
+        $record->sourceDateModified = $asset->dateModified?->format('Y-m-d H:i:s');
 
         if ($prebuilt = $this->fetchBunnyStreamBlurhash($asset)) {
             $record->blurhash = $prebuilt;
@@ -162,11 +163,11 @@ class BlurhashService extends Component
             return true;
         }
 
-        if ($asset->dateModified !== null && $record->dateUpdated !== null) {
-            return $asset->dateModified > $record->dateUpdated;
+        if ($asset->dateModified === null || $record->sourceDateModified === null) {
+            return false;
         }
 
-        return false;
+        return $asset->dateModified > new \DateTime($record->sourceDateModified);
     }
 
     public function getHasTransparency(Asset $asset): bool
