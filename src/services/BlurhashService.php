@@ -239,7 +239,7 @@ class BlurhashService extends Component
 
         $value = Base83::decode(substr($blurhash, 2, 4));
 
-        return ColorValidator::normalizeColor('#'.dechex($value));
+        return ColorValidator::normalizeColor('#'.sprintf('%06x', $value));
     }
 
     private function resolve(Asset $asset): ?BlurhashRecord
