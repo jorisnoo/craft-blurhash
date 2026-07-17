@@ -51,6 +51,7 @@ class BlurhashService extends Component
                 ?? $this->fetchBunnyStreamThumbnail($asset);
 
             if ($tempPath === null && $asset->kind === Asset::KIND_VIDEO) {
+                Craft::warning("No thumbnail available for video asset {$asset->id}; storing an empty blurhash", __METHOD__);
                 $record->blurhash = null;
                 $record->hasTransparency = false;
             } else {
@@ -132,8 +133,20 @@ class BlurhashService extends Component
 
     private function downloadToTempFile(string $url): ?string
     {
-        $data = @file_get_contents($url);
-        if ($data === false) {
+        try {
+            $data = (string) Craft::createGuzzleClient()
+                ->get($url, [
+                    'headers' => $this->thumbnailRequestHeaders(),
+                    'timeout' => 10,
+                ])
+                ->getBody();
+        } catch (\Throwable $e) {
+            Craft::warning("Failed to download thumbnail {$url}: {$e->getMessage()}", __METHOD__);
+            return null;
+        }
+
+        if ($data === '') {
+            Craft::warning("Thumbnail {$url} was empty", __METHOD__);
             return null;
         }
 
@@ -148,6 +161,19 @@ class BlurhashService extends Component
         }
 
         return $path;
+    }
+
+    /**
+     * CDNs that restrict access by referrer reject server-side requests, which
+     * arrive without one.
+     *
+     * @return array<string, string>
+     */
+    private function thumbnailRequestHeaders(): array
+    {
+        $referrer = Craft::$app->getSites()->getPrimarySite()->getBaseUrl();
+
+        return $referrer ? ['Referer' => $referrer] : [];
     }
 
     public function getBlurhash(Asset $asset): ?string
