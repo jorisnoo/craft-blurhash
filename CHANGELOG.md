@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.0.2](https://github.com/jorisnoo/craft-blurhash/releases/tag/v1.0.2) (2026-07-17)
+
+### Code Refactoring
+
+- use Guzzle for thumbnail downloads with error handling and referrer headers ([6cc9785](https://github.com/jorisnoo/craft-blurhash/commit/6cc9785732114a3f240ee41d70987f1e388fad82))
 ## [1.0.1](https://github.com/jorisnoo/craft-blurhash/releases/tag/v1.0.1) (2026-07-10)
 
 ### Chores
