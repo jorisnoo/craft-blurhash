@@ -89,3 +89,7 @@ JPEG, PNG, WebP, GIF, AVIF, BMP, and TIFF.
 ## License
 
 [MIT](LICENSE.md)
+
+## Maintainer releases
+
+See [RELEASING.md](RELEASING.md) for versioning, changelog entries and the release command.

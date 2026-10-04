@@ -2,18 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
-## [1.0.2](https://github.com/jorisnoo/craft-blurhash/releases/tag/v1.0.2) (2026-07-17)
+## [1.0.2](https://github.com/jorisnoo/craft-blurhash/releases/tag/1.0.2) (2026-07-17)
 
 ### Code Refactoring
 
 - use Guzzle for thumbnail downloads with error handling and referrer headers ([6cc9785](https://github.com/jorisnoo/craft-blurhash/commit/6cc9785732114a3f240ee41d70987f1e388fad82))
-## [1.0.1](https://github.com/jorisnoo/craft-blurhash/releases/tag/v1.0.1) (2026-07-10)
+## [1.0.1](https://github.com/jorisnoo/craft-blurhash/releases/tag/1.0.1) (2026-07-10)
 
 ### Chores
 
 - tidy composer.json metadata, switch CI to tests.yml, add justfile ([7fdd9ad](https://github.com/jorisnoo/craft-blurhash/commit/7fdd9ad668040ead9b891c30e3604f3175b98fb0))
 - **deps:** bump actions/checkout from 6 to 7 ([5b75a65](https://github.com/jorisnoo/craft-blurhash/commit/5b75a65144f6cdc8825fa0125ea652e647a7a9fc))
-## [1.0.0](https://github.com/jorisnoo/craft-blurhash/releases/tag/v1.0.0) (2026-05-12)
+## [1.0.0](https://github.com/jorisnoo/craft-blurhash/releases/tag/1.0.0) (2026-05-12)
 
 ### Features
 
