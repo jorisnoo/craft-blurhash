@@ -11,9 +11,13 @@ class ComputeBlurhashBatchJob extends BaseJob
     /** @var int[] */
     public array $assetIds = [];
 
+    public bool $force = false;
+
     public function execute($queue): void
     {
         $total = count($this->assetIds);
+        $blurhash = Plugin::getInstance()->blurhash;
+        $blurhash->clearCache();
 
         foreach ($this->assetIds as $i => $assetId) {
             $this->setProgress($queue, $i / $total);
@@ -24,7 +28,7 @@ class ComputeBlurhashBatchJob extends BaseJob
                 continue;
             }
 
-            Plugin::getInstance()->blurhash->computeAndStore($asset);
+            $blurhash->computeAndStore($asset, $this->force);
         }
     }
 

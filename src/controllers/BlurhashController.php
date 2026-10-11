@@ -3,11 +3,9 @@
 namespace Noo\CraftBlurhash\controllers;
 
 use Craft;
-use craft\db\Query;
 use craft\elements\Asset;
 use craft\web\Controller;
 use Noo\CraftBlurhash\jobs\ComputeBlurhashBatchJob;
-use Noo\CraftBlurhash\models\BlurhashRecord;
 use Noo\CraftBlurhash\Plugin;
 use yii\web\Response;
 
@@ -20,15 +18,7 @@ class BlurhashController extends Controller
         $this->requirePostRequest();
         $this->requirePermission('utility:blurhash');
 
-        $generatedIds = (new Query())
-            ->select('assetId')
-            ->from('{{%blurhash}}')
-            ->where(['not', ['blurhash' => null]])
-            ->column();
-
-        $query = Asset::find()
-            ->kind(['image', 'video'])
-            ->id($generatedIds ? ['not', ...$generatedIds] : null);
+        $query = Plugin::getInstance()->blurhash->findAssetsWithoutBlurhash();
 
         $count = $this->pushBatchJobs($query);
 
@@ -42,18 +32,18 @@ class BlurhashController extends Controller
         $this->requirePostRequest();
         $this->requirePermission('utility:blurhash');
 
-        BlurhashRecord::deleteAll();
-
+        // Existing blurhashes stay in place and are overwritten as the jobs
+        // run, so templates keep their placeholders in the meantime.
         $query = Asset::find()->kind(['image', 'video']);
 
-        $count = $this->pushBatchJobs($query);
+        $count = $this->pushBatchJobs($query, force: true);
 
         Craft::$app->getSession()->setNotice("Queued $count assets for blurhash regeneration.");
 
         return $this->redirectToPostedUrl();
     }
 
-    private function pushBatchJobs(\craft\elements\db\AssetQuery $query): int
+    private function pushBatchJobs(\craft\elements\db\AssetQuery $query, bool $force = false): int
     {
         $batch = [];
         $count = 0;
@@ -69,6 +59,7 @@ class BlurhashController extends Controller
             if (count($batch) >= self::BATCH_SIZE) {
                 Craft::$app->getQueue()->push(new ComputeBlurhashBatchJob([
                     'assetIds' => $batch,
+                    'force' => $force,
                 ]));
                 $batch = [];
             }
@@ -77,6 +68,7 @@ class BlurhashController extends Controller
         if (! empty($batch)) {
             Craft::$app->getQueue()->push(new ComputeBlurhashBatchJob([
                 'assetIds' => $batch,
+                'force' => $force,
             ]));
         }
 

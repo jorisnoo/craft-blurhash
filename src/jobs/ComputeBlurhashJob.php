@@ -19,6 +19,7 @@ class ComputeBlurhashJob extends BaseJob
         }
 
         $blurhash = Plugin::getInstance()->blurhash;
+        $blurhash->clearCache();
 
         if (! $blurhash->needsCompute($asset)) {
             return;

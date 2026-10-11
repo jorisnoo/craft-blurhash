@@ -24,7 +24,7 @@ class BlurhashUtility extends Utility
 
     public static function badgeCount(): int
     {
-        return Plugin::getInstance()->blurhash->getStats()['missing'];
+        return Plugin::getInstance()->blurhash->getMissingCount();
     }
 
     public static function contentHtml(): string
@@ -34,6 +34,7 @@ class BlurhashUtility extends Utility
         return \Craft::$app->getView()->renderTemplate('blurhash/_utilities/blurhash', [
             'eligible' => $stats['eligible'],
             'generated' => $stats['generated'],
+            'missing' => $stats['missing'],
             'missingAssets' => $stats['missingAssets'],
         ]);
     }

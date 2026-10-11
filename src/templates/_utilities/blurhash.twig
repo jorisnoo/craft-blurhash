@@ -30,7 +30,7 @@
 
     <div class="readable">
         <h2>Missing Assets</h2>
-        {% set missingCount = eligible - generated %}
+        {% set missingCount = missing %}
         {% if missingCount > missingAssets | length %}
             <p>Showing {{ missingAssets | length }} of {{ missingCount }} assets without a blurhash.</p>
         {% endif %}

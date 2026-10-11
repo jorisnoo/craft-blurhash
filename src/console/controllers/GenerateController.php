@@ -54,14 +54,16 @@ class GenerateController extends Controller
                 continue;
             }
 
-            if (! $this->force && $service->getBlurhash($asset) !== null) {
+            if (! $this->force && ! $service->needsCompute($asset)) {
                 $skipped++;
+                $service->clearCache();
 
                 continue;
             }
 
             $this->stdout("  [{$asset->id}] {$asset->filename}...");
             $service->computeAndStore($asset, $this->force);
+            $service->clearCache();
             $this->stdout(" done\n");
             $processed++;
         }
