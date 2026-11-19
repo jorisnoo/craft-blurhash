@@ -3,8 +3,11 @@
   "sign_tag": true,
   "version_files": [],
   "checks": [
+    ["composer", "--no-plugins", "validate", "--strict", "--no-check-publish"],
+    ["composer", "audit"],
     [
       "vendor/bin/pest"
-    ]
+    ],
+    ["bash", "scripts/test-integration.sh"]
   ]
 }

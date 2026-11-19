@@ -11,7 +11,7 @@ A [Craft CMS](https://craftcms.com) plugin that generates [blurhash](https://blu
 
 ```bash
 composer require jorisnoo/craft-blurhash
-php craft plugin/install craft-blurhash
+php craft plugin/install blurhash
 ```
 
 After installing, run the console command to generate blurhashes for existing assets:
@@ -27,8 +27,31 @@ Blurhash encoding and transparency detection are expensive operations that requi
 ### When values are computed
 
 - **On asset save** — When an image is uploaded or replaced, a queue job is pushed to compute the blurhash and transparency in the background.
-- **On first template access** — If a template requests a blurhash for an asset that hasn't been processed yet, a queue job is automatically queued. The current request gets a fallback value (`null` for blurhash, `false` for transparency), and the computed value is available on the next render.
-- **On failure** — If computation fails (corrupt file, unavailable source), an empty record is saved to prevent the job from being re-queued on every page view. Re-uploading or modifying the asset triggers a fresh computation.
+- **On first template access** — By default, a missing placeholder queues background work. The current request gets `null` for blurhash and `false` for transparency; a later render sees the result after the worker finishes. A stale placeholder remains available while its replacement is computed.
+- **On failure** — A failed first computation leaves an empty row so that page views do not continually retry it. Generate Missing retries empty rows; Regenerate All also refreshes existing values without deleting them first.
+
+### Configuration
+
+To disable queueing from templates, create `config/blurhash.php`:
+
+```php
+<?php
+return ['computeOnDemand' => false]; // default: true
+```
+
+This does not disable processing on save, the console command, or the control panel utility. Run a Craft queue worker for background generation.
+
+### Health check
+
+With `webhubworks/craft-ohdear` installed, add this entry to `healthChecks` in `config/ohdear.php`:
+
+```php
+\Noo\CraftBlurhash\health\MissingBlurhashCheck::new()
+    ->warnWhenMissingCountIsAbove(0)
+    ->failWhenMissingCountIsAbove(50),
+```
+
+These are the defaults. The check counts eligible assets older than five minutes; the utility includes recent uploads and lists up to 50 missing assets.
 
 ### Why not use Craft's cache?
 
@@ -84,7 +107,7 @@ php craft blurhash/generate 123
 
 ## Supported Formats
 
-JPEG, PNG, WebP, GIF, AVIF, BMP, and TIFF.
+JPEG, PNG, WebP, GIF, AVIF and BMP require GD with the applicable codecs. TIFF also requires the Imagick extension with TIFF support. Transparency detection for PNG, WebP and GIF requires Craft’s Imagick image driver; the GD driver reports `false`. The plugin uses GD to encode PNG data URIs even when Imagick is available.
 
 ## License
 

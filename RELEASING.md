@@ -11,10 +11,15 @@ Release from `main` using an explicit version without a `v` prefix. `CHANGELOG.m
 Configured release checks:
 
 ```sh
+composer --no-plugins validate --strict --no-check-publish
+composer audit
 vendor/bin/pest
+bash scripts/test-integration.sh
 ```
 
 Install the project’s normal dependencies first. The helper runs these checks when publishing; dry-run prints them without executing them. Run any additional checks needed for the changed behavior before committing.
+
+The integration check needs `mysqld`, `mysqladmin` and `mysql` on PATH (MySQL 8+). It runs a socket-only server and an isolated Craft install in a temporary directory; it does not use an existing site or database. CI runs the checks on PHP 8.2 and 8.5. Require the aggregate **Package checks** status on `main`.
 
 ## Release
 

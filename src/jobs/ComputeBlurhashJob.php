@@ -2,29 +2,24 @@
 
 namespace Noo\CraftBlurhash\jobs;
 
-use craft\elements\Asset;
+use Craft;
 use craft\queue\BaseJob;
 use Noo\CraftBlurhash\Plugin;
 
 class ComputeBlurhashJob extends BaseJob
 {
     public int $assetId;
+    public bool $force = false;
 
     public function execute($queue): void
     {
-        $asset = Asset::find()->id($this->assetId)->one();
+        $asset = Craft::$app->getAssets()->getAssetById($this->assetId);
 
-        if (! $asset) {
+        if (!$asset || !Plugin::getInstance()->isProcessable($asset)) {
             return;
         }
 
-        $blurhash = Plugin::getInstance()->blurhash;
-
-        if (! $blurhash->needsCompute($asset)) {
-            return;
-        }
-
-        $blurhash->computeAndStore($asset);
+        Plugin::getInstance()->blurhash->computeAndStore($asset, $this->force);
     }
 
     protected function defaultDescription(): ?string
