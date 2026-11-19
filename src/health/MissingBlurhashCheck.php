@@ -28,7 +28,7 @@ class MissingBlurhashCheck extends Check
 
     public function run(): CheckResult
     {
-        $stats = Plugin::getInstance()->blurhash->getStats(ignoreCreatedWithinSeconds: 300);
+        $stats = Plugin::getInstance()->blurhash->getStats(ignoreCreatedWithinSeconds: 300, missingLimit: 0);
         $eligibleCount = $stats['eligible'];
         $missingCount = $stats['missing'];
 

@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.0.3] - 2026-11-19
+
+### Fixed
+
+- Replacing an image refreshes its placeholder, including same-second replacements. Existing timestamps are normalized against Craft's UTC asset metadata on upgrade.
+- Template lookups enqueue background work instead of downloading images inline. Propagated saves do not create duplicate jobs, and concurrent initial writes use the asset's unique key.
+- Generate Missing and Regenerate All schedule bounded background batches; previously computed placeholders remain available. Status counts avoid hydrating image libraries, and the utility shows at most 50 missing assets.
+- The console reports computed and skipped assets accurately. Invalid Bunny Stream hashes fall back to thumbnail encoding and invalid template input returns `null`.
+
 ## [1.0.2](https://github.com/jorisnoo/craft-blurhash/releases/tag/1.0.2) (2026-07-17)
 
 ### Code Refactoring

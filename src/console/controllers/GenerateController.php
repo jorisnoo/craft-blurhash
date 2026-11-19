@@ -54,7 +54,7 @@ class GenerateController extends Controller
                 continue;
             }
 
-            if (! $this->force && $service->getBlurhash($asset) !== null) {
+            if (! $this->force && ! $service->needsCompute($asset)) {
                 $skipped++;
 
                 continue;

@@ -8,7 +8,6 @@ use craft\elements\Asset;
 use craft\events\ModelEvent;
 use craft\events\RegisterComponentTypesEvent;
 use craft\services\Utilities;
-use Noo\CraftBlurhash\jobs\ComputeBlurhashJob;
 use Noo\CraftBlurhash\models\Settings;
 use Noo\CraftBlurhash\services\BlurhashService;
 use Noo\CraftBlurhash\twig\BlurhashExtension;
@@ -22,7 +21,7 @@ use yii\base\Event;
  */
 class Plugin extends BasePlugin
 {
-    public string $schemaVersion = '1.1.0';
+    public string $schemaVersion = '1.2.0';
 
     public const ALLOWED_MIME_TYPES = [
         'image/jpeg',
@@ -63,17 +62,16 @@ class Plugin extends BasePlugin
                 /** @var Asset $asset */
                 $asset = $event->sender;
 
-                if (! $this->isProcessable($asset)) {
+                if ($asset->propagating || ! $this->isProcessable($asset)) {
                     return;
                 }
 
-                if (! $this->blurhash->needsCompute($asset)) {
+                $force = $asset->getScenario() === Asset::SCENARIO_REPLACE;
+                if (!$force && ! $this->blurhash->needsCompute($asset)) {
                     return;
                 }
 
-                Craft::$app->getQueue()->push(new ComputeBlurhashJob([
-                    'assetId' => $asset->id,
-                ]));
+                $this->blurhash->queueCompute($asset, $force);
             }
         );
     }

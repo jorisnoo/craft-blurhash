@@ -26,6 +26,7 @@
     ],
     "require": {
         "php": "^8.2",
+        "ext-gd": "*",
         "craftcms/cms": "^5.0.0",
         "kornrunner/blurhash": "^1.2"
     },
@@ -33,7 +34,7 @@
         "webhubworks/craft-ohdear": "Required for the MissingBlurhashCheck health check"
     },
     "require-dev": {
-        "pestphp/pest": "^4.4"
+        "pestphp/pest": "^3.8 || ^4.4"
     },
     "autoload": {
         "psr-4": {
