@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+
+### Fixed
+
+- Thumbnails are downloaded straight to a temporary file with a 60 second timeout, instead of being held in memory with a 10 second timeout. Full-size originals, such as images stored in Cloudinary as raw, no longer risk timing out or exhausting memory.
+
 ## [1.0.3] - 2026-11-19
 
 ### Fixed
