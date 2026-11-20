@@ -154,30 +154,31 @@ class BlurhashService extends Component
 
     private function downloadToTempFile(string $url): ?string
     {
-        try {
-            $data = (string) Craft::createGuzzleClient()
-                ->get($url, [
-                    'headers' => $this->thumbnailRequestHeaders(),
-                    'timeout' => 10,
-                ])
-                ->getBody();
-        } catch (\Throwable $e) {
-            Craft::warning("Failed to download thumbnail {$url}: {$e->getMessage()}", __METHOD__);
-            return null;
-        }
-
-        if ($data === '') {
-            Craft::warning("Thumbnail {$url} was empty", __METHOD__);
-            return null;
-        }
-
         $path = tempnam(sys_get_temp_dir(), 'blurhash_');
         if ($path === false) {
             return null;
         }
 
-        if (file_put_contents($path, $data) === false) {
+        try {
+            // Streamed to disk with a generous timeout: the URL can point at a
+            // full-size original that the CDN can't resize, such as a file
+            // stored in Cloudinary as raw.
+            Craft::createGuzzleClient()->get($url, [
+                'headers' => $this->thumbnailRequestHeaders(),
+                'sink' => $path,
+                'connect_timeout' => 10,
+                'timeout' => 60,
+            ]);
+        } catch (\Throwable $e) {
             @unlink($path);
+            Craft::warning("Failed to download thumbnail {$url}: {$e->getMessage()}", __METHOD__);
+            return null;
+        }
+
+        clearstatcache(true, $path);
+        if (filesize($path) === 0) {
+            @unlink($path);
+            Craft::warning("Thumbnail {$url} was empty", __METHOD__);
             return null;
         }
 
